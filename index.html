@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro Frontend Example</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 960px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .micro-frontend { padding: 20px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #fafafa; }
+        .micro-frontend h2 { margin-top: 0; color: #333; }
+        #header-mf { background-color: #e0f7fa; border-color: #b2ebf2; text-align: center; }
+        #products-mf { background-color: #e8f5e9; border-color: #c8e6c9; }
+        #cart-mf { background-color: #ffe0b2; border-color: #ffcc80; }
+        .product-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dotted #eee; }
+        .product-item:last-child { border-bottom: none; }
+        button { background-color: #4CAF50; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- This div represents the slot for the Header Micro Frontend -->
+        <div id="header-mf" class="micro-frontend">
+            <h2>Loading Header...</h2>
+        </div>
+
+        <!-- This div represents the slot for the Products Micro Frontend -->
+        <div id="products-mf" class="micro-frontend">
+            <h2>Loading Products...</h2>
+        </div>
+
+        <!-- This div represents the slot for the Shopping Cart Micro Frontend -->
+        <div id="cart-mf" class="micro-frontend">
+            <h2>Loading Shopping Cart...</h2>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to render content into a specific DOM element
+        function renderMicroFrontend(containerId, content) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = content;
+            } else {
+                console.error(`Container with ID '${containerId}' not found.`);
+            }
+        }
+
+        // --- Simulate independent Micro Frontends --- 
+        // Each function below represents a distinct micro frontend, potentially developed
+        // and deployed by a different team.
+
+        // Micro Frontend 1: Header (could be owned by a "Core UI" team)
+        function loadHeaderMF() {
+            // In a real scenario, this content might be fetched from a separate service
+            // or bundled by a different team, then injected here.
+            return `
+                <h2>My Awesome Store</h2>
+                <p>Welcome to our Micro Frontend powered application!</p>
+            `;
+        }
+
+        // Micro Frontend 2: Product List (could be owned by a "Product Catalog" team)
+        function loadProductsMF() {
+            // This micro frontend manages its own data and rendering logic.
+            const products = [
+                { id: 1, name: 'Laptop', price: 1200 },
+                { id: 2, name: 'Mouse', price: 25 },
+                { id: 3, name: 'Keyboard', price: 75 }
+            ];
+
+            const productItems = products.map(product => `
+                <div class="product-item">
+                    <span>${product.name}</span>
+                    <span>$${product.price.toFixed(2)}</span>
+                    <button onclick="addToCart(${product.id}, '${product.name}', ${product.price})">Add to Cart</button>
+                </div>
+            `).join('');
+
+            return `
+                <h2>Products</h2>
+                <div id="product-list">${productItems}</div>
+            `;
+        }
+
+        // Micro Frontend 3: Shopping Cart (could be owned by an "Order Management" team)
+        let cartItems = []; // This state would typically be managed within the MF or a shared state solution
+
+        function loadCartMF() {
+            const cartContent = cartItems.length > 0
+                ? cartItems.map(item => `
+                    <div class="product-item">
+                        <span>${item.name} (x${item.quantity})</span>
+                        <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  `).join('')
+                : '<p>Your cart is empty.</p>';
+
+            const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            return `
+                <h2>Shopping Cart</h2>
+                <div id="cart-content">${cartContent}</div>
+                <p><strong>Total: $${total.toFixed(2)}</strong></p>
+                <button onclick="checkout()">Checkout</button>
+            `;
+        }
+
+        // Simulate an action that updates the cart (and thus the cart micro frontend)
+        function addToCart(productId, productName, productPrice) {
+            const existingItem = cartItems.find(item => item.id === productId);
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cartItems.push({ id: productId, name: productName, price: productPrice, quantity: 1 });
+            }
+            // Re-render *only* the cart micro frontend to reflect the change.
+            // This illustrates the independent update capability of micro frontends.
+            renderMicroFrontend('cart-mf', loadCartMF()); 
+            console.log(`Added ${productName} to cart. Current cart:`, cartItems);
+        }
+
+        function checkout() {
+            alert('Proceeding to checkout with items: ' + JSON.stringify(cartItems));
+            cartItems = []; // Clear cart after checkout
+            renderMicroFrontend('cart-mf', loadCartMF()); // Re-render empty cart
+        }
+
+        // Initialize the application by rendering all micro frontends
+        document.addEventListener('DOMContentLoaded', () => {
+            // Each micro frontend is rendered into its designated container.
+            // This simulates independent deployment and composition of UI parts.
+            renderMicroFrontend('header-mf', loadHeaderMF()); // Header MF
+            renderMicroFrontend('products-mf', loadProductsMF()); // Products MF
+            renderMicroFrontend('cart-mf', loadCartMF()); // Shopping Cart MF
+        });
+    </script>
+</body>
+</html>
